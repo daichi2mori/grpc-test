@@ -23,11 +23,20 @@ type myServer struct {
 
 // Unary RPCがレスポンスを返す
 func (s *myServer) Hello(ctx context.Context, req *hellopb.HelloRequest) (*hellopb.HelloResponse, error) {
-	// リクエストからnameフィールドを取り出して
-	// "Hello, [名前]!"というレスポンスを返す
 	return &hellopb.HelloResponse{
 		Message: fmt.Sprintf("Hello, %s!", req.GetName()),
 	}, nil
+
+	// 何か処理をしてエラーが発生した
+	// stat := status.New(codes.Unknown, "unknown error occurred")
+	// stat, _ = stat.WithDetails(&errdetails.DebugInfo{
+	// 	Detail: "detail reason of err",
+	// })
+	// err := stat.Err()
+
+	// return &hellopb.HelloResponse{
+	// 	Message: "Hello, " + req.GetName(),
+	// }, err
 }
 
 // Server Stream RPCがレスポンスを受け取る
@@ -94,7 +103,20 @@ func main() {
 	}
 
 	// 2. gRPCサーバーを作成
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		// interceptorファイルで実装したミドルウェアを適用
+
+		// grpc.UnaryInterceptor(myUnaryServerInterceptor1),
+		grpc.ChainUnaryInterceptor(
+			myUnaryServerInterceptor1,
+			myUnaryServerInterceptor2,
+		),
+		// grpc.StreamInterceptor(myStreamServerInterceptor1),
+		grpc.ChainStreamInterceptor(
+			myStreamServerInterceptor1,
+			myStreamServerInterceptor2,
+		),
+	)
 
 	// 3. gRPCサーバーにGreetingServiceを登録
 	hellopb.RegisterGreetingServiceServer(s, NewMyServer())
